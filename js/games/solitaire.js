@@ -200,7 +200,7 @@ export function mount(root, { topBar }) {
     const els2 = g.stock.slice(-6).map((x) => els.get(x.c.id));
     els2.forEach((el, k) => el?.animate?.([{ transform: 'translateX(0)' }, { transform: `translateX(${k % 2 ? 10 : -10}px) rotate(${k % 2 ? 6 : -6}deg)` }, { transform: 'translateX(0)' }], { duration: 380, delay: k * 30 }));
     render();
-    toast('Face-down cards shuffled');
+    toast(`Shuffled ${pool.length} face-down cards (${downCounts.reduce((a, b) => a + b, 0)} from the columns)`, 2600);
   }
 
   function drawStock() {

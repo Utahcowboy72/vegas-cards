@@ -11,6 +11,7 @@ const GAMES = [
   { id: 'draw', name: 'Five Card Draw', blurb: 'Classic draw poker', icon: '♦', load: () => import('./games/poker.js') },
 ];
 
+export const APP_VERSION = 'v5';
 const app = document.getElementById('app');
 let cleanup = null;
 
@@ -54,7 +55,8 @@ function home() {
     h('div', { class: 'home-foot' },
       h('button', { class: 'btn', onclick: openSettings }, '⚙ Table & Cards'),
       h('button', { class: 'btn', onclick: openStats }, 'Stats'),
-      h('button', { class: 'btn', onclick: openAbout }, 'About')));
+      h('button', { class: 'btn', onclick: openAbout }, 'About')),
+    h('p', { class: 'version' }, `Version ${APP_VERSION}`));
   app.replaceChildren(view);
   return () => off();
 }
