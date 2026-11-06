@@ -5,7 +5,7 @@ const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'js/app.js', 'js/core.js', 'js/cards.js',
   'js/games/solitaire.js', 'js/games/blackjack.js', 'js/games/videopoker.js', 'js/games/poker.js',
-  'js/poker/eval.js', 'js/poker/bots.js',
+  'js/poker/eval.js', 'js/poker/bots.js', 'js/poker/vp.js',
   'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
 ];
 

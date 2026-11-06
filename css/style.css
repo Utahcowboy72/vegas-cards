@@ -321,3 +321,86 @@ table.paytable td:first-child, table.paytable th:first-child { text-align: left;
 .ins { font-size: 12px; color: var(--gold); }
 .btn.rec { box-shadow: 0 0 0 2px var(--gold); }
 .bj .action-bar .btn { min-width: 74px; }
+
+/* ---------- Video poker ---------- */
+.vp { background: radial-gradient(ellipse at 50% 30%, #1c2a6b, #0b1033 80%); }
+.vp::before { display: none; }
+.vp-machine { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 10px; overflow: auto; }
+.vp-pay { width: 100%; max-width: 720px; }
+.vp-table { font-size: 13px; color: #ffe066; background: #0a0f40; border: 2px solid #c9a227; border-radius: 8px; overflow: hidden; text-transform: uppercase; font-weight: 700; }
+.vp-table th { background: #1a237e; color: #fff; font-size: 12px; }
+.vp-table td.cur, .vp-table th.cur { background: rgba(200, 30, 30, .85); color: #fff; }
+.vp-table tr.win td { background: #ffe066; color: #1a1a1a; }
+.vp-table td, .vp-table th { padding: 2px 6px; }
+@media (max-width: 520px) {
+  .vp-table td:not(:first-child):not(.cur), .vp-table th:not(:first-child):not(.cur) { display: none; }
+  .vp-table { font-size: 12px; }
+}
+.vp-msg { min-height: 24px; font-weight: 800; color: #ffe066; text-align: center; text-transform: uppercase; letter-spacing: .5px; font-size: 15px; }
+.vp-cards { display: flex; gap: 6px; justify-content: center; }
+.vp-slot { background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+.vp-slot .card { position: relative; }
+.held-tag { font-weight: 900; color: #ffe066; font-size: 13px; letter-spacing: 1px; visibility: hidden; text-shadow: 0 1px 0 #000; }
+.held-tag.on { visibility: visible; }
+.card.hintmark { box-shadow: 0 0 0 3px #4fc3f7, 0 0 12px #4fc3f7; }
+.vp-meters { display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 720px; }
+.vp-meters > div { flex: 1; background: #050820; border: 1px solid #333a7a; border-radius: 6px; padding: 4px 8px; text-align: center; display: flex; flex-direction: column; }
+.vp-meters small { color: #8ea0ff; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.vp-meters b { color: #ff5252; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 20px; }
+.vp-multi { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; --cw: 26px; }
+.vp-mini { display: flex; gap: 2px; padding: 3px; border-radius: 6px; background: rgba(0,0,0,.3); position: relative; }
+.vp-mini .card { position: relative; }
+.vp-mini.paid { box-shadow: 0 0 0 2px #ffe066; }
+.vp-mini .mini-label { position: absolute; left: 0; right: 0; bottom: -2px; text-align: center; font-size: 9px; font-weight: 800; color: #1a1a1a; background: #ffe066; border-radius: 0 0 6px 6px; text-transform: uppercase; }
+.vp-mini .card .center, .vp-mini .card .corner.br { display: none; }
+.vp-mini .card .cr { font-size: 11px; }
+.vp-mini .card .cs { font-size: 10px; }
+.vp-btns .btn { min-width: 90px; }
+.vp-deal { min-width: 120px !important; }
+
+/* ---------- Poker ---------- */
+.pk-info { text-align: center; font-size: 12px; color: var(--ink-dim); padding: 3px 8px; flex: none; min-height: 20px; }
+.pk-wrap { flex: 1; position: relative; overflow: hidden; }
+.pk-table { position: absolute; inset: 4px 6px; }
+.pk-felt-oval { position: absolute; inset: 9% 7%; border-radius: 50% / 50%; border: 10px solid #4a2c17; box-shadow: inset 0 0 0 3px rgba(229,196,90,.35), inset 0 0 40px rgba(0,0,0,.45), 0 6px 18px rgba(0,0,0,.5); background: radial-gradient(ellipse at 50% 40%, rgba(255,255,255,.08), transparent 70%); }
+.pk-table.portrait .pk-felt-oval { inset: 7% 4%; border-radius: 45% / 32%; }
+.pk-center { position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 2; }
+.pk-board { display: flex; gap: 4px; }
+.pk-board .card, .pk-board .card-ghost { position: relative; }
+.card-ghost { width: var(--cw); height: var(--ch); border-radius: var(--radius); border: 1px dashed rgba(255,255,255,.18); }
+.pk-pot { font-weight: 800; color: var(--gold); min-height: 20px; text-shadow: 0 1px 2px #000; }
+.pk-result { font-size: 12px; text-align: center; background: rgba(0,0,0,.55); padding: 4px 10px; border-radius: 8px; max-width: 70vw; }
+.pk-seat { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; z-index: 3; --cw: calc(var(--cw-base, 40px)); }
+.pk-seat .pk-cards { display: flex; --cw: 30px; margin-bottom: -6px; z-index: 1; }
+.pk .pk-seat .pk-cards .card { position: relative; margin-right: calc(var(--cw) * -0.45); }
+.pk .pk-seat .pk-cards .card:last-child { margin-right: 0; }
+.pk-seat.me .pk-cards { --cw: 52px; margin-bottom: -4px; }
+.pk-seat.me .pk-cards .card { margin-right: calc(var(--cw) * -0.2) !important; }
+.pk-seat.me .pk-cards .card:last-child { margin-right: 0 !important; }
+.pk-seat .pk-cards .card .center { display: none; }
+.pk-seat:not(.me) .pk-cards .card .corner.br { display: none; }
+.pk-seat .pk-cards .card .cr { font-size: calc(var(--cw) * .36); }
+.pk-seat .pk-cards .card .cs { font-size: calc(var(--cw) * .32); }
+.pk-seat.me .pk-cards .card .center { display: block; }
+.pk-seat.me .pk-cards .card .cr { font-size: calc(var(--cw) * .27); }
+.pk-seat.me .pk-cards .card .cs { font-size: calc(var(--cw) * .22); }
+.pk-seat .card.mydown { transform: translateY(-6px); filter: brightness(.94); }
+.pk-seat .card.discard { transform: translateY(-14px); filter: brightness(.6); outline: 2px solid var(--danger); }
+.pk-seat .card.win { box-shadow: 0 0 0 2px var(--gold), 0 0 10px rgba(229,196,90,.9); }
+.pk-plate { background: rgba(0,0,0,.72); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 3px 9px; text-align: center; min-width: 74px; z-index: 2; }
+.pk-seat.turn .pk-plate { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 0 12px rgba(229,196,90,.6); }
+.pk-seat.winner .pk-plate { background: rgba(47,143,70,.9); }
+.pk-seat.folded { opacity: .5; }
+.pk-seat.out { opacity: .3; }
+.pk-name { font-size: 12px; font-weight: 700; white-space: nowrap; }
+.pk-stack { font-size: 13px; color: var(--gold); font-weight: 800; font-variant-numeric: tabular-nums; }
+.pk-act { font-size: 11px; color: #cfe; white-space: nowrap; }
+.pk-hand { font-size: 10px; color: #fff; max-width: 130px; line-height: 1.15; }
+.dealer-btn { position: absolute; right: -14px; top: 50%; width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #111; font-weight: 900; font-size: 12px; display: grid; place-items: center; box-shadow: 0 1px 3px #000; z-index: 4; }
+.pk-bet { position: absolute; transform: translate(-50%, -50%); background: rgba(0,0,0,.6); border: 2px solid #c62828; color: #fff; font-size: 11px; font-weight: 800; border-radius: 999px; padding: 1px 7px; white-space: nowrap; z-index: 5; }
+.pk-actions { width: 100%; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.pk-sizer { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 4px; }
+.pk-sizer .btn-row { margin: 0; gap: 4px; }
+.pk-range { width: 100%; accent-color: var(--gold); }
+.pk-log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; }
+.pk-log .hd { color: var(--gold); margin-top: 8px; }

@@ -101,6 +101,9 @@ async function route() {
   cleanup = mod.mount(app, { id: g.id, title: g.name, topBar });
 }
 
+// Return chips left at a cash poker table if the app was closed mid-session.
+if (state.pokerCashout) { state.wallet += state.pokerCashout; state.pokerCashout = 0; save(); }
+
 applyTheme();
 window.addEventListener('hashchange', route);
 route();
