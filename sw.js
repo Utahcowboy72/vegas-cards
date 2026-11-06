@@ -1,12 +1,12 @@
 // Offline cache. Bump VERSION whenever files change so installed apps update.
-const VERSION = 'v10';
+const VERSION = 'v11';
 const CACHE = 'high-card-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'js/app.js', 'js/core.js', 'js/cards.js',
   'js/games/solitaire.js', 'js/games/blackjack.js', 'js/games/videopoker.js', 'js/games/poker.js',
   'js/poker/eval.js', 'js/poker/bots.js', 'js/poker/vp.js',
-  'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
+  'icons/icon.svg', 'fonts/limelight.woff2', 'fonts/cinzel-700.woff2', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
 ];
 
 self.addEventListener('install', (e) => {

@@ -3,15 +3,15 @@ import { cardEl, makeCard } from './cards.js';
 
 const GAMES = [
   { id: 'solitaire', name: 'Klondike Solitaire', blurb: 'Draw 1 or 3, Vegas scoring', icon: '♠', load: () => import('./games/solitaire.js') },
-  { id: 'blackjack', name: 'Blackjack', blurb: 'Shoe game, Vegas Strip & downtown rules', icon: '♣', load: () => import('./games/blackjack.js') },
-  { id: 'videopoker', name: 'Video Poker', blurb: 'Jacks or Better, Bonus, Double Double, Deuces Wild', icon: '♦', load: () => import('./games/videopoker.js') },
+  { id: 'blackjack', name: 'Blackjack', blurb: 'Strip & downtown rules, 1 to 3 spots', icon: '♣', load: () => import('./games/blackjack.js') },
+  { id: 'videopoker', name: 'Video Poker', blurb: 'Jacks or Better, Bonus, Deuces Wild & more', icon: '♦', load: () => import('./games/videopoker.js') },
   { id: 'holdem', name: "Texas Hold'em", blurb: 'No-limit cash game or sit-and-go', icon: '♥', load: () => import('./games/poker.js') },
   { id: 'omaha', name: 'Omaha', blurb: 'Pot-limit, high or Hi-Lo 8', icon: '♠', load: () => import('./games/poker.js') },
   { id: 'stud', name: 'Seven Card Stud', blurb: 'Fixed limit with antes and bring-in', icon: '♣', load: () => import('./games/poker.js') },
   { id: 'draw', name: 'Five Card Draw', blurb: 'Classic draw poker', icon: '♦', load: () => import('./games/poker.js') },
 ];
 
-export const APP_VERSION = 'v10';
+export const APP_VERSION = 'v11';
 const app = document.getElementById('app');
 let cleanup = null;
 
@@ -30,14 +30,36 @@ export function topBar(title, { onOptions, onHelp, extra } = {}) {
   return bar;
 }
 
+// Little card vignettes that show what each game looks like at a glance.
+const ART = {
+  solitaire: { kind: 'cascade', cards: [[13, 'S'], [12, 'H'], [11, 'C'], [10, 'D']] },
+  blackjack: { kind: 'pair', cards: [[14, 'S'], [13, 'H']], badge: '21' },
+  videopoker: { kind: 'row', cards: [[10, 'H'], [11, 'H'], [12, 'H'], [13, 'H'], [14, 'H']] },
+  holdem: { kind: 'pair', cards: [[14, 'C'], [14, 'D']] },
+  omaha: { kind: 'fan', cards: [[14, 'H'], [13, 'H'], [12, 'S'], [11, 'S']] },
+  stud: { kind: 'stud', cards: [[0], [0], [9, 'C'], [9, 'D'], [9, 'H']] },
+  draw: { kind: 'fan', cards: [[5, 'S'], [6, 'S'], [7, 'S'], [8, 'S'], [9, 'S']] },
+};
+
+function gameArt(id) {
+  const a = ART[id];
+  return h('div', { class: `art art-${a.kind} mobile-faces`, 'aria-hidden': 'true' },
+    a.cards.map(([r, s]) => cardEl(r ? makeCard(r, s) : makeCard(2, 'S'), !!r)),
+    a.badge ? h('span', { class: 'art-badge' }, a.badge) : null);
+}
+
+function gameTile(g, extra = '') {
+  return h('a', { class: `tile tile-${g.id} ${extra}`, href: '#' + g.id },
+    gameArt(g.id),
+    h('span', { class: 'tile-text' }, h('strong', {}, g.name), h('small', {}, g.blurb)));
+}
+
 function home() {
-  const tiles = GAMES.map((g) => h('a', { class: 'tile', href: '#' + g.id },
-    h('span', { class: 'tile-icon' + (g.icon === '♥' || g.icon === '♦' ? ' red' : '') }, g.icon),
-    h('span', { class: 'tile-text' }, h('strong', {}, g.name), h('small', {}, g.blurb))));
+  const byId = Object.fromEntries(GAMES.map((g) => [g.id, g]));
 
   const w = h('strong', {}, money(wallet()));
   const off = onWallet((v) => { w.textContent = money(v); });
-  const refillBtn = h('button', { class: 'btn small', onclick: () => {
+  const refillBtn = h('button', { class: 'btn primary small', onclick: () => {
     if (wallet() >= REFILL_AMOUNT) toast(`Refills are available below ${money(REFILL_AMOUNT)}`);
     else { refill(); toast('Bankroll refilled'); }
   } }, 'Refill');
@@ -47,16 +69,23 @@ function home() {
 
   const view = h('div', { class: 'home felt' },
     h('div', { class: 'home-head' },
-      fan,
-      h('h1', { class: 'logo' }, 'High Card Casino'),
-      h('p', { class: 'tag' }, 'Fair shuffles. Real Vegas rules. Play money only.'),
-      h('div', { class: 'bankroll' }, h('span', {}, 'Bankroll '), w, refillBtn)),
-    h('nav', { class: 'tiles' }, tiles),
+      h('div', { class: 'marquee' },
+        fan,
+        h('h1', { class: 'logo' }, h('span', { class: 'logo-top' }, 'High Card'), h('span', { class: 'logo-sub' }, 'Casino')),
+        h('div', { class: 'suits-rule', 'aria-hidden': 'true' }, h('i'), '♠ ', h('b', {}, '♥'), ' ♣ ', h('b', {}, '♦'), h('i'))),
+      h('div', { class: 'bankroll' }, h('span', { class: 'chip-ico', 'aria-hidden': 'true' }),
+        h('span', { class: 'bk-text' }, h('small', {}, 'Bankroll'), w), refillBtn)),
+    h('section', { class: 'lobby' },
+      h('h2', { class: 'lobby-h' }, 'Table Games'),
+      h('nav', { class: 'tiles' },
+        gameTile(byId.solitaire, 'wide'), gameTile(byId.blackjack), gameTile(byId.videopoker)),
+      h('h2', { class: 'lobby-h' }, 'Poker Room'),
+      h('nav', { class: 'tiles' }, ['holdem', 'omaha', 'stud', 'draw'].map((id) => gameTile(byId[id])))),
     h('div', { class: 'home-foot' },
-      h('button', { class: 'btn', onclick: openSettings }, '⚙ Table & Cards'),
-      h('button', { class: 'btn', onclick: openStats }, 'Stats'),
-      h('button', { class: 'btn', onclick: openAbout }, 'About')),
-    h('p', { class: 'version' }, `Version ${APP_VERSION}`));
+      h('button', { class: 'pill', onclick: openSettings }, h('span', { 'aria-hidden': 'true' }, '⚙'), ' Table & Cards'),
+      h('button', { class: 'pill', onclick: openStats }, h('span', { 'aria-hidden': 'true' }, '▤'), ' Stats'),
+      h('button', { class: 'pill', onclick: openAbout }, h('span', { 'aria-hidden': 'true' }, 'ⓘ'), ' About')),
+    h('p', { class: 'version' }, `Play money only · Version ${APP_VERSION}`));
   app.replaceChildren(view);
   return () => off();
 }
