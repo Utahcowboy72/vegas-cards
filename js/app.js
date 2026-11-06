@@ -11,7 +11,7 @@ const GAMES = [
   { id: 'draw', name: 'Five Card Draw', blurb: 'Classic draw poker', icon: '♦', load: () => import('./games/poker.js') },
 ];
 
-export const APP_VERSION = 'v5';
+export const APP_VERSION = 'v6';
 const app = document.getElementById('app');
 let cleanup = null;
 
@@ -111,5 +111,16 @@ window.addEventListener('hashchange', route);
 route();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
+    // Check for a new version on launch and whenever the app comes back to the foreground.
+    const check = () => reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+    setInterval(check, 30 * 60 * 1000);
+  }).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || document.querySelector('.update-banner')) return;
+    const b = h('button', { class: 'update-banner', onclick: () => location.reload() }, 'New version ready. Tap to update.');
+    document.body.append(b);
+  });
 }

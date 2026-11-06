@@ -413,3 +413,4 @@ table.paytable td:first-child, table.paytable th:first-child { text-align: left;
 .mobile-faces .card.face .big-suit { display: block; position: absolute; left: 50%; top: 64%; transform: translate(-50%, -50%); font-size: calc(var(--cw) * .72); line-height: 1; font-family: system-ui, sans-serif; }
 .mobile-faces .card { border-radius: calc(var(--cw) * .07); }
 .version { color: var(--ink-dim); font-size: 12px; margin-top: 14px; }
+.update-banner { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1200; background: linear-gradient(#f0d36e, #c9a227); color: #231b02; font-weight: 800; border: 0; border-radius: 999px; padding: 12px 20px; box-shadow: 0 4px 14px rgba(0,0,0,.5); cursor: pointer; white-space: nowrap; }
