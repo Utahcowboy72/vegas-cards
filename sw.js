@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION whenever files change so installed apps update.
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE = 'high-card-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',

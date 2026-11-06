@@ -589,7 +589,9 @@ export function mount(root, { topBar }) {
     if (locStr === 'stock') { drawStock(); return; }
     const from = parseLoc(locStr);
     const pile = pileOf(from);
-    const item = pile[from.idx];
+    const item = pile && pile[from.idx];
+    // A card element whose data moved on (should never happen): redraw the table instead of failing silently.
+    if (!item || item.c.id !== el.dataset.id) { logAct(`stale tap ${el.dataset.id} at ${locStr}`); render(); return; }
     if (!item.up) return;
     if (from.pile === 'waste' && from.idx !== g.waste.length - 1) return;
     if (from.pile === 'found' && from.idx !== pile.length - 1) return;
