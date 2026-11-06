@@ -174,15 +174,23 @@ export function mount(root, { topBar }) {
     return g.tab[loc.i];
   }
 
-  // Gather the stock and waste, shuffle them fairly, and put them back face down. Tableau and foundations stay put.
+  // Gather every card that isn't face up in play (stock, waste and the face-down tableau cards), shuffle them
+  // fairly, and deal them back: each column keeps the same number of face-down cards, the rest go to the stock.
+  // Face-up tableau runs and foundations stay put.
   function reshuffleStock() {
     if (!g || g.won) return;
-    const cards = g.stock.concat(g.waste);
-    if (cards.length < 2) { toast('Nothing left in the stock to shuffle.'); return; }
+    const downCounts = g.tab.map((col) => col.filter((x) => !x.up).length);
+    const pool = g.stock.concat(g.waste).map((x) => x.c);
+    g.tab.forEach((col) => col.forEach((x) => { if (!x.up) pool.push(x.c); }));
+    if (pool.length < 2) { toast('No face-down cards left to shuffle.'); return; }
     if (g.scoring === 'vegas-bankroll') { toast('Reshuffling is not allowed when playing for bankroll.'); return; }
     snapshot();
     startClock();
-    const order = shuffle(cards.map((x) => x.c));
+    const order = shuffle(pool);
+    g.tab.forEach((col, i) => {
+      // Face-down cards always sit at the bottom of a column, below the face-up run.
+      for (let k = 0; k < downCounts[i]; k++) col[k] = { c: order.pop(), up: false };
+    });
     g.stock = order.map((c) => ({ c, up: false }));
     g.waste = [];
     g.moves++;
@@ -192,7 +200,7 @@ export function mount(root, { topBar }) {
     const els2 = g.stock.slice(-6).map((x) => els.get(x.c.id));
     els2.forEach((el, k) => el?.animate?.([{ transform: 'translateX(0)' }, { transform: `translateX(${k % 2 ? 10 : -10}px) rotate(${k % 2 ? 6 : -6}deg)` }, { transform: 'translateX(0)' }], { duration: 380, delay: k * 30 }));
     render();
-    toast('Stock shuffled');
+    toast('Face-down cards shuffled');
   }
 
   function drawStock() {
@@ -492,7 +500,7 @@ export function mount(root, { topBar }) {
     undoBtn.disabled = !history.length || g.scoring === 'vegas-bankroll';
     autoBtn.style.display = canAutoFinish() ? '' : 'none';
     hintBtn.style.display = canAutoFinish() ? 'none' : '';
-    shuffleBtn.disabled = g.stock.length + g.waste.length < 2 || g.scoring === 'vegas-bankroll';
+    shuffleBtn.disabled = g.scoring === 'vegas-bankroll';
   }
 
   function updateInfo() {
