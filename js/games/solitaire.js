@@ -23,6 +23,7 @@ export function mount(root, { topBar }) {
   const els = new Map(); // card id -> element
   let layout = null;
   let drag = null;
+  let seenEls = null;
 
   const scoreEl = h('span', {});
   const movesEl = h('span', {});
@@ -123,6 +124,7 @@ export function mount(root, { topBar }) {
     if (!history.length) return;
     if (g.scoring === 'vegas-bankroll') { toast('No undo when playing for bankroll, just like the casino.'); return; }
     const prev = JSON.parse(history.pop());
+    logAct('undo');
     prev.passesAllowed = prev.passesAllowed === 'inf' ? Infinity : prev.passesAllowed;
     const elapsed = g.elapsed;
     g = prev;
@@ -150,7 +152,10 @@ export function mount(root, { topBar }) {
   // Move cards: from = {pile:'waste'|'tab'|'found', i, idx}, to = {pile:'tab'|'found', i}
   function doMove(from, to) {
     const src = pileOf(from);
+    // Never act on a stale location: the card must still be there and face up.
+    if (!src || from.idx < 0 || from.idx >= src.length || !src[from.idx].up || pileOf(to) === src) { render(); return; }
     const moving = src.slice(from.idx);
+    logAct(`move ${moving.map(cardTxt).join(' ')} ${from.pile}${from.i}#${from.idx}/${src.length} -> ${to.pile}${to.i}`);
     snapshot();
     startClock();
     src.length = from.idx;
@@ -165,6 +170,11 @@ export function mount(root, { topBar }) {
     g.moves++;
     sfx.card();
     afterMove();
+  }
+
+  function locate(id) {
+    const look = (pile, name, i) => { const k = pile.findIndex((x) => x.c.id === id); return k >= 0 ? { pile: name, i, idx: k } : null; };
+    return look(g.waste, 'waste', 0) || g.tab.map((c, i) => look(c, 'tab', i)).find(Boolean) || g.found.map((f, i) => look(f, 'found', i)).find(Boolean) || null;
   }
 
   function pileOf(loc) {
@@ -184,6 +194,7 @@ export function mount(root, { topBar }) {
     g.tab.forEach((col) => col.forEach((x) => { if (!x.up) pool.push(x.c); }));
     if (pool.length < 2) { toast('No face-down cards left to shuffle.'); return; }
     if (g.scoring === 'vegas-bankroll') { toast('Reshuffling is not allowed when playing for bankroll.'); return; }
+    logAct(`shuffle ${pool.length}`);
     snapshot();
     startClock();
     const total = pool.length;
@@ -210,6 +221,7 @@ export function mount(root, { topBar }) {
     if (g.stock.length) {
       snapshot();
       const n = Math.min(g.draw, g.stock.length);
+      logAct(`draw ${n} (stock ${g.stock.length}, waste ${g.waste.length})`);
       for (let i = 0; i < n; i++) {
         const x = g.stock.pop();
         x.up = true;
@@ -219,6 +231,7 @@ export function mount(root, { topBar }) {
       sfx.card();
     } else if (g.waste.length) {
       if (g.pass >= g.passesAllowed) { toast(g.passesAllowed === 1 ? 'Only one pass through the deck in this mode.' : `No passes left (limit ${g.passesAllowed}).`); return; }
+      logAct(`recycle waste ${g.waste.length} -> stock`);
       snapshot();
       g.stock = g.waste.reverse().map((x) => ({ c: x.c, up: false }));
       g.waste = [];
@@ -228,6 +241,41 @@ export function mount(root, { topBar }) {
       sfx.shuffle();
     }
     afterMove();
+  }
+
+  // ---------- Integrity: a real deck always has exactly 52 different cards ----------
+  const actionLog = [];
+  const cardTxt = (x) => (x ? x.c.id : '?');
+  function logAct(t) { actionLog.push(`${g ? g.moves : 0}: ${t}`); if (actionLog.length > 80) actionLog.shift(); }
+  const ALL_CARDS = shuffledDeck(1);
+  const ALL_IDS = ALL_CARDS.map((c) => c.id);
+  function verifyDeck() {
+    const seen = new Map();
+    const piles = [['stock', g.stock], ['waste', g.waste], ...g.found.map((f, i) => [`found${i}`, f]), ...g.tab.map((c, i) => [`tab${i}`, c])];
+    let bad = false;
+    for (const [, pile] of piles) {
+      for (let k = pile.length - 1; k >= 0; k--) {
+        const x = pile[k];
+        if (!x || !x.c) { pile.splice(k, 1); bad = true; continue; }
+        if (seen.has(x.c.id)) { pile.splice(k, 1); bad = true; continue; }
+        seen.set(x.c.id, true);
+      }
+    }
+    const missing = ALL_IDS.filter((id) => !seen.has(id));
+    if (!missing.length && !bad) return;
+    // Put any lost card back at the bottom of the stock so the game stays playable, and record what happened.
+    for (const id of missing) {
+      const el = els.get(id);
+      const card = el?._card || ALL_CARDS.find((c) => c.id === id);
+      g.stock.unshift({ c: card, up: false });
+    }
+    const report = { when: new Date().toISOString(), missing, duplicateOrEmpty: bad, log: actionLog.slice(-40), version: 'v7' };
+    try { localStorage.setItem('vegas-cards-sol-diag', JSON.stringify(report)); } catch { /* ignore */ }
+    stat('solitaire', 'deckRepairs');
+    setTimeout(() => sheet('Card check', h('div', { class: 'prose' },
+      h('p', {}, `The table was missing ${missing.length ? missing.join(', ') : 'nothing'}${bad ? ' and had a duplicate' : ''}. I put the card back in the stock so you can keep playing.`),
+      h('p', {}, 'Please screenshot this and send it to Claude. These are the last moves:'),
+      h('pre', { class: 'diag' }, report.log.join('\n')))), 50);
   }
 
   function afterMove() {
@@ -255,6 +303,7 @@ export function mount(root, { topBar }) {
           const src = pileOf(from);
           src.pop();
           g.found[fi].push({ c: card, up: true });
+          logAct(`auto ${card.id} -> found${fi}`);
           addScore('toFound');
           if (from.pile === 'tab' && src.length && !top(src).up) { top(src).up = true; addScore('flip'); }
           moved = true;
@@ -408,6 +457,7 @@ export function mount(root, { topBar }) {
   }
 
   function getEl(x) {
+    seenEls?.add(x.c.id);
     let el = els.get(x.c.id);
     if (!el) {
       el = cardEl(x.c, x.up, 'sol-card');
@@ -421,6 +471,8 @@ export function mount(root, { topBar }) {
 
   function render(dealing = false) {
     if (!g) return;
+    verifyDeck();
+    seenEls = new Set();
     layout = computeLayout();
     const { cw, ch, colX, tabY, pad, H } = layout;
     const ty = pad;
@@ -483,6 +535,9 @@ export function mount(root, { topBar }) {
       });
     });
 
+    // Any element that is not part of the current table must not show (it would look like a phantom card).
+    for (const [id, el] of els) el.style.visibility = seenEls.has(id) ? '' : 'hidden';
+
     if (dealing && appState.animSpeed !== 'off') {
       // Deal animation: cards fly from the stock position in order.
       const order = [];
@@ -542,7 +597,7 @@ export function mount(root, { topBar }) {
     const moving = pile.slice(from.idx).map((x) => els.get(x.c.id));
     const rect = board.getBoundingClientRect();
     drag = {
-      from, moving, startX: e.clientX, startY: e.clientY, active: false,
+      from, id: item.c.id, moving, startX: e.clientX, startY: e.clientY, active: false,
       origin: moving.map((m) => ({ x: parseFloat(m.style.left), y: parseFloat(m.style.top) })), rect,
     };
     el.setPointerCapture?.(e.pointerId);
@@ -569,6 +624,9 @@ export function mount(root, { topBar }) {
     drag = null;
     if (!d) return;
     d.moving.forEach((m) => m.classList.remove('dragging'));
+    // Re-find the card in case the table changed while the finger was down.
+    const now = locate(d.id);
+    if (!now || now.pile !== d.from.pile || now.i !== d.from.i || now.idx !== d.from.idx) { render(); return; }
     if (!d.active) {
       if (o.tapToMove) {
         const t = bestTarget(d.from);
@@ -641,6 +699,7 @@ export function mount(root, { topBar }) {
   // ---------- Lifecycle ----------
   const ro = new ResizeObserver(() => { if (!drag) render(); });
   ro.observe(board);
+  window.__sol = () => g;
   newGame();
 
   return () => {
