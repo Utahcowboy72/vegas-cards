@@ -217,6 +217,16 @@ export function mount(root, { topBar }) {
     toast(`Shuffled ${total} face-down cards (${downCounts.reduce((a, b) => a + b, 0)} from the columns)`, 2600);
   }
 
+  // One tap on the deck = exactly one draw. A touch also fires a follow-up click on whatever is under the
+  // finger once the card has flown away (the empty deck slot), which used to trigger a second draw or recycle.
+  let lastStockTap = 0;
+  function tapStock() {
+    const now = performance.now();
+    if (now - lastStockTap < 350) return;
+    lastStockTap = now;
+    drawStock();
+  }
+
   function drawStock() {
     if (g.won) return;
     startClock();
@@ -420,7 +430,7 @@ export function mount(root, { topBar }) {
   function buildSlots() {
     board.querySelectorAll('.slot').forEach((s) => s.remove());
     slotEls = {
-      stock: h('div', { class: 'slot stock-slot', onclick: drawStock }, '↻'),
+      stock: h('div', { class: 'slot stock-slot', onpointerdown: (e) => { e.preventDefault(); tapStock(); } }, '↻'),
       found: [0, 1, 2, 3].map(() => h('div', { class: 'slot' }, 'A')),
       tab: [0, 1, 2, 3, 4, 5, 6].map(() => h('div', { class: 'slot' }, 'K')),
     };
@@ -597,7 +607,7 @@ export function mount(root, { topBar }) {
     if (g.won || e.button > 0) return;
     const el = e.currentTarget;
     const locStr = el.dataset.loc;
-    if (locStr === 'stock') { drawStock(); return; }
+    if (locStr === 'stock') { e.preventDefault(); tapStock(); return; }
     const from = parseLoc(locStr);
     const pile = pileOf(from);
     const item = pile && pile[from.idx];

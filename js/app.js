@@ -11,7 +11,7 @@ const GAMES = [
   { id: 'draw', name: 'Five Card Draw', blurb: 'Classic draw poker', icon: '♦', load: () => import('./games/poker.js') },
 ];
 
-export const APP_VERSION = 'v9';
+export const APP_VERSION = 'v10';
 const app = document.getElementById('app');
 let cleanup = null;
 
