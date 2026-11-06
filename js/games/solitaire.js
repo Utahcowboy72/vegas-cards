@@ -1,5 +1,5 @@
 // Klondike solitaire with draw 1/3, pass limits, standard & Vegas scoring, left-handed layout.
-import { shuffledDeck, cardEl, setCardFace, isRed } from '../cards.js';
+import { shuffledDeck, cardEl, setCardFace, isRed, shuffle } from '../cards.js';
 import { h, gameOpts, save, sheet, selectRow, toggleRow, toast, sfx, stat, statMax, addWallet, wallet, money, canAfford, confirmBox, state as appState } from '../core.js';
 
 const OPTS = {
@@ -35,7 +35,8 @@ export function mount(root, { topBar }) {
   const hintBtn = h('button', { class: 'btn', onclick: hint }, 'Hint');
   const autoBtn = h('button', { class: 'btn primary', onclick: autoFinish, style: { display: 'none' } }, 'Auto finish');
   const newBtn = h('button', { class: 'btn', onclick: () => newGameAsk() }, 'New deal');
-  const bar = h('div', { class: 'action-bar' }, h('div', { class: 'btn-row' }, newBtn, undoBtn, hintBtn, autoBtn));
+  const shuffleBtn = h('button', { class: 'btn', onclick: () => reshuffleStock() }, '⇄ Shuffle');
+  const bar = h('div', { class: 'action-bar' }, h('div', { class: 'btn-row' }, newBtn, undoBtn, shuffleBtn, hintBtn, autoBtn));
 
   const topEl = topBar('Klondike', { onOptions: openOptions, onHelp: openHelp });
   const view = h('div', { class: 'game sol felt' }, topEl, info, board, bar);
@@ -171,6 +172,27 @@ export function mount(root, { topBar }) {
     if (loc.pile === 'found') return g.found[loc.i];
     if (loc.pile === 'stock') return g.stock;
     return g.tab[loc.i];
+  }
+
+  // Gather the stock and waste, shuffle them fairly, and put them back face down. Tableau and foundations stay put.
+  function reshuffleStock() {
+    if (!g || g.won) return;
+    const cards = g.stock.concat(g.waste);
+    if (cards.length < 2) { toast('Nothing left in the stock to shuffle.'); return; }
+    if (g.scoring === 'vegas-bankroll') { toast('Reshuffling is not allowed when playing for bankroll.'); return; }
+    snapshot();
+    startClock();
+    const order = shuffle(cards.map((x) => x.c));
+    g.stock = order.map((c) => ({ c, up: false }));
+    g.waste = [];
+    g.moves++;
+    if (g.scoring === 'standard') g.score = Math.max(0, g.score - 20);
+    sfx.shuffle();
+    // Little riffle: wiggle the stock pile.
+    const els2 = g.stock.slice(-6).map((x) => els.get(x.c.id));
+    els2.forEach((el, k) => el?.animate?.([{ transform: 'translateX(0)' }, { transform: `translateX(${k % 2 ? 10 : -10}px) rotate(${k % 2 ? 6 : -6}deg)` }, { transform: 'translateX(0)' }], { duration: 380, delay: k * 30 }));
+    render();
+    toast('Stock shuffled');
   }
 
   function drawStock() {
@@ -360,6 +382,7 @@ export function mount(root, { topBar }) {
     const colX = (i) => left + (o.leftHanded ? 6 - i : i) * (cw + gap);
     const tabY = pad + ch + Math.max(gap * 2, 12);
     view.style.setProperty('--cw', cw + 'px');
+    view.style.setProperty('--ratio', String(ch / cw));
     board.classList.toggle('mobile-faces', cw < 72);
     return { W, H, pad, gap, cw, ch, colX, tabY };
   }
@@ -469,6 +492,7 @@ export function mount(root, { topBar }) {
     undoBtn.disabled = !history.length || g.scoring === 'vegas-bankroll';
     autoBtn.style.display = canAutoFinish() ? '' : 'none';
     hintBtn.style.display = canAutoFinish() ? 'none' : '';
+    shuffleBtn.disabled = g.stock.length + g.waste.length < 2 || g.scoring === 'vegas-bankroll';
   }
 
   function updateInfo() {
