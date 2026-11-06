@@ -217,14 +217,14 @@ button { font: inherit; color: inherit; }
 @keyframes flipIn { from { transform: scaleX(0); } }
 
 /* ---------- Sheets ---------- */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 50; display: flex; align-items: flex-end; justify-content: center; animation: fade .15s; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1000; display: flex; align-items: flex-end; justify-content: center; animation: fade .15s; }
 @media (min-width: 700px) { .overlay { align-items: center; } }
 @keyframes fade { from { opacity: 0; } }
-.sheet { background: var(--panel-solid); width: 100%; max-width: 520px; max-height: 88vh; display: flex; flex-direction: column; border-radius: 16px 16px 0 0; border: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+.sheet { background: var(--panel-solid); width: 100%; max-width: 520px; max-height: 88vh; max-height: 88dvh; display: flex; flex-direction: column; border-radius: 16px 16px 0 0; border: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
 @media (min-width: 700px) { .sheet { border-radius: 16px; } }
 .sheet-head { display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .sheet-head h2 { flex: 1; margin: 0; font-size: 18px; }
-.sheet-body { padding: 8px 16px 16px; overflow: auto; user-select: text; -webkit-user-select: text; }
+.sheet-body { padding: 8px 16px calc(24px + env(safe-area-inset-bottom)); overflow: auto; user-select: text; -webkit-user-select: text; }
 .sheet-body h3 { margin: 16px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--gold); }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
 .row > span:first-child { display: flex; flex-direction: column; }
@@ -244,7 +244,7 @@ table.paytable { width: 100%; border-collapse: collapse; font-variant-numeric: t
 table.paytable td, table.paytable th { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.07); text-align: right; }
 table.paytable td:first-child, table.paytable th:first-child { text-align: left; }
 
-.toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); background: rgba(0,0,0,.85); padding: 10px 16px; border-radius: 999px; opacity: 0; transition: .25s; z-index: 60; pointer-events: none; max-width: 90vw; text-align: center; }
+.toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); background: rgba(0,0,0,.85); padding: 10px 16px; border-radius: 999px; opacity: 0; transition: .25s; z-index: 1100; pointer-events: none; max-width: 90vw; text-align: center; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 .banner { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); background: rgba(0,0,0,.78); border: 2px solid var(--gold); color: var(--gold); padding: 14px 22px; border-radius: 14px; font-size: 22px; font-weight: 800; text-align: center; z-index: 20; pointer-events: none; animation: pop .3s; white-space: nowrap; }
@@ -275,10 +275,10 @@ table.paytable td:first-child, table.paytable th:first-child { text-align: left;
 .status-line { min-height: 22px; text-align: center; color: var(--ink-dim); font-size: 14px; }
 
 /* ---------- Game screens ---------- */
-.game { height: 100%; min-height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.game { height: 100%; min-height: 100%; display: flex; flex-direction: column; overflow: hidden; isolation: isolate; }
 .sol-info { display: flex; gap: 14px; justify-content: center; padding: 4px 8px; font-size: 13px; color: var(--ink-dim); font-variant-numeric: tabular-nums; flex: none; flex-wrap: wrap; }
 .sol-info span:empty { display: none; }
-.sol-board { flex: 1; position: relative; overflow: hidden; touch-action: none; }
+.sol-board { flex: 1; position: relative; overflow: hidden; touch-action: none; isolation: isolate; }
 .sol-card { transition: left .18s ease-out, top .18s ease-out; cursor: pointer; }
 [data-anim="slow"] .sol-card { transition-duration: .3s; }
 [data-anim="fast"] .sol-card { transition-duration: .09s; }
@@ -404,3 +404,11 @@ table.paytable td:first-child, table.paytable th:first-child { text-align: left;
 .pk-range { width: 100%; accent-color: var(--gold); }
 .pk-log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; }
 .pk-log .hd { color: var(--gold); margin-top: 8px; }
+
+/* Big-index faces for small screens: large rank + suit across the top, one big suit below. */
+.card .big-suit { display: none; }
+.mobile-faces .card.face .center, .mobile-faces .card.face .corner.br { display: none; }
+.mobile-faces .card.face .corner.tl { flex-direction: row; align-items: center; gap: 1px; top: 3%; left: 6%; line-height: 1; }
+.mobile-faces .card.face .cr { font-size: calc(var(--cw) * .42); letter-spacing: -2px; }
+.mobile-faces .card.face .cs { font-size: calc(var(--cw) * .36); }
+.mobile-faces .card.face .big-suit { display: block; position: absolute; left: 50%; top: 62%; transform: translate(-50%, -50%); font-size: calc(var(--cw) * .66); line-height: 1; font-family: system-ui, sans-serif; }

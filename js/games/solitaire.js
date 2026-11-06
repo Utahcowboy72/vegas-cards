@@ -360,7 +360,7 @@ export function mount(root, { topBar }) {
     const colX = (i) => left + (o.leftHanded ? 6 - i : i) * (cw + gap);
     const tabY = pad + ch + Math.max(gap * 2, 12);
     view.style.setProperty('--cw', cw + 'px');
-    board.classList.toggle('compact', cw < 48);
+    board.classList.toggle('mobile-faces', cw < 72);
     return { W, H, pad, gap, cw, ch, colX, tabY };
   }
 
@@ -396,7 +396,7 @@ export function mount(root, { topBar }) {
     const stockX = colX(0);
     const wasteX = colX(1);
     const fanDir = o.leftHanded ? -1 : 1;
-    const fanStep = Math.round(cw * 0.32);
+    const fanStep = Math.round(cw * 0.42);
 
     const setSlot = (el, x, y) => { el.style.left = x + 'px'; el.style.top = y + 'px'; };
     setSlot(slotEls.stock, stockX, ty);
@@ -431,12 +431,16 @@ export function mount(root, { topBar }) {
     g.tab.forEach((col, i) => {
       const downs = col.filter((x) => !x.up).length;
       const ups = col.length - downs;
-      let dOff = ch * 0.12;
-      let uOff = ch * 0.27;
+      // Roomy spacing like a real table; only squeeze a column when it would run off the screen.
+      let dOff = ch * 0.18;
+      let uOff = ch * 0.4;
       const need = downs * dOff + Math.max(0, ups - 1) * uOff;
       if (need > avail && ups > 1) {
-        uOff = Math.max(ch * 0.13, (avail - downs * dOff) / (ups - 1));
-        if (downs * dOff + (ups - 1) * uOff > avail) dOff = ch * 0.06;
+        uOff = Math.max(ch * 0.22, (avail - downs * dOff) / (ups - 1));
+        if (downs * dOff + (ups - 1) * uOff > avail) {
+          dOff = Math.max(ch * 0.07, (avail - (ups - 1) * uOff) / Math.max(1, downs));
+          if (downs * dOff + (ups - 1) * uOff > avail) uOff = Math.max(ch * 0.16, (avail - downs * dOff) / (ups - 1));
+        }
       }
       let y = tabY;
       col.forEach((x, k) => {

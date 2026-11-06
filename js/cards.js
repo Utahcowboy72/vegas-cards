@@ -99,7 +99,8 @@ export function cardInner(card) {
   }
   return `<div class="corner tl"><span class="cr">${rc}</span><span class="cs">${sc}</span></div>
     <div class="center">${center}</div>
-    <div class="corner br"><span class="cr">${rc}</span><span class="cs">${sc}</span></div>`;
+    <div class="corner br"><span class="cr">${rc}</span><span class="cs">${sc}</span></div>
+    <div class="big-suit">${sc}</div>`;
 }
 
 export function cardEl(card, faceUp = true, extraClass = '') {
