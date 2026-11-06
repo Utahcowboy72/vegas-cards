@@ -208,10 +208,12 @@ export function mount(root, { topBar }) {
     g.moves++;
     if (g.scoring === 'standard') g.score = Math.max(0, g.score - 20);
     sfx.shuffle();
-    // Little riffle: wiggle the stock pile.
-    const els2 = g.stock.slice(-6).map((x) => els.get(x.c.id));
-    els2.forEach((el, k) => el?.animate?.([{ transform: 'translateX(0)' }, { transform: `translateX(${k % 2 ? 10 : -10}px) rotate(${k % 2 ? 6 : -6}deg)` }, { transform: 'translateX(0)' }], { duration: 380, delay: k * 30 }));
     render();
+    // Show the redeal: every face-down column card flies out from the deck again, row by row.
+    const redeal = [];
+    const maxDown = Math.max(0, ...downCounts);
+    for (let row = 0; row < maxDown; row++) g.tab.forEach((col, i) => { if (row < downCounts[i]) redeal.push(col[row]); });
+    flyFromStock(redeal);
     toast(`Shuffled ${total} face-down cards (${downCounts.reduce((a, b) => a + b, 0)} from the columns)`, 2600);
   }
 
@@ -542,14 +544,7 @@ export function mount(root, { topBar }) {
       // Deal animation: cards fly from the stock position in order.
       const order = [];
       for (let row = 0; row < 7; row++) for (let i = row; i < 7; i++) order.push(g.tab[i][row]);
-      order.forEach((x, k) => {
-        const el = els.get(x.c.id);
-        const fx = el.style.left; const fy = el.style.top;
-        el.style.transition = 'none';
-        el.style.left = stockX + 'px'; el.style.top = ty + 'px';
-        void el.offsetWidth;
-        setTimeout(() => { el.style.transition = ''; el.style.left = fx; el.style.top = fy; if (k % 3 === 0) sfx.card(); }, 20 + k * (appState.animSpeed === 'fast' ? 12 : appState.animSpeed === 'slow' ? 45 : 25));
-      });
+      flyFromStock(order);
     }
 
     updateInfo();
@@ -557,6 +552,22 @@ export function mount(root, { topBar }) {
     autoBtn.style.display = canAutoFinish() ? '' : 'none';
     hintBtn.style.display = canAutoFinish() ? 'none' : '';
     shuffleBtn.disabled = g.scoring === 'vegas-bankroll';
+  }
+
+  // Visibly deal cards from the stock to wherever they now sit on the table.
+  function flyFromStock(items) {
+    if (appState.animSpeed === 'off' || !layout) return;
+    const sx = layout.colX(0) + 'px'; const sy = layout.pad + 'px';
+    const step = appState.animSpeed === 'fast' ? 12 : appState.animSpeed === 'slow' ? 45 : 25;
+    items.forEach((x, k) => {
+      const el = els.get(x.c.id);
+      if (!el) return;
+      const fx = el.style.left; const fy = el.style.top;
+      el.style.transition = 'none';
+      el.style.left = sx; el.style.top = sy;
+      void el.offsetWidth;
+      setTimeout(() => { el.style.transition = ''; el.style.left = fx; el.style.top = fy; if (k % 3 === 0) sfx.card(); }, 20 + k * step);
+    });
   }
 
   function updateInfo() {
