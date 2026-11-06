@@ -540,3 +540,6 @@ table.paytable td:first-child, table.paytable th:first-child { text-align: left;
 .version { color: var(--ink-dim); font-size: 11px; margin-top: 16px; letter-spacing: .04em; }
 .update-banner { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1200; background: linear-gradient(#f0d36e, #c9a227); color: #231b02; font-weight: 800; border: 0; border-radius: 999px; padding: 12px 20px; box-shadow: 0 4px 14px rgba(0,0,0,.5); cursor: pointer; white-space: nowrap; }
 .diag { font-size: 11px; white-space: pre-wrap; background: #111; padding: 8px; border-radius: 8px; max-height: 40vh; overflow: auto; }
+
+.btn .fee { position: absolute; top: -8px; right: -6px; background: linear-gradient(#f0d36e, #c9a227); color: #231b02; font-size: 10px; line-height: 1; padding: 3px 5px; border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,.5); pointer-events: none; }
+.action-bar .btn { position: relative; }

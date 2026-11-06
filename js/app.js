@@ -2,7 +2,7 @@ import { state, save, applyTheme, h, sheet, selectRow, toggleRow, FELTS, BACKS, 
 import { cardEl, makeCard } from './cards.js';
 
 const GAMES = [
-  { id: 'solitaire', name: 'Klondike Solitaire', blurb: 'Draw 1 or 3, Vegas scoring', icon: '♠', load: () => import('./games/solitaire.js') },
+  { id: 'solitaire', name: 'Klondike Solitaire', blurb: 'Draw 1 or 3, $52 a deck, $5 a card', icon: '♠', load: () => import('./games/solitaire.js') },
   { id: 'blackjack', name: 'Blackjack', blurb: 'Strip & downtown rules, 1 to 3 spots', icon: '♣', load: () => import('./games/blackjack.js') },
   { id: 'videopoker', name: 'Video Poker', blurb: 'Jacks or Better, Bonus, Deuces Wild & more', icon: '♦', load: () => import('./games/videopoker.js') },
   { id: 'holdem', name: "Texas Hold'em", blurb: 'No-limit cash game or sit-and-go', icon: '♥', load: () => import('./games/poker.js') },
@@ -11,7 +11,7 @@ const GAMES = [
   { id: 'draw', name: 'Five Card Draw', blurb: 'Classic draw poker', icon: '♦', load: () => import('./games/poker.js') },
 ];
 
-export const APP_VERSION = 'v11';
+export const APP_VERSION = 'v12';
 const app = document.getElementById('app');
 let cleanup = null;
 
@@ -107,7 +107,7 @@ function openStats() {
   const label = { solitaire: 'Solitaire', blackjack: 'Blackjack', videopoker: 'Video Poker', poker: 'Poker', wallet: 'Bankroll' };
   for (const [g, s] of Object.entries(state.stats)) {
     rows.push(h('h3', {}, label[g] || g));
-    for (const [k, v] of Object.entries(s)) rows.push(h('div', { class: 'row' }, h('span', {}, k.replace(/([A-Z])/g, ' $1').toLowerCase()), h('span', {}, typeof v === 'number' && /won|lost|net|best|wager/i.test(k) && !/hands|games/i.test(k) ? money(v) : String(v))));
+    for (const [k, v] of Object.entries(s)) rows.push(h('div', { class: 'row' }, h('span', {}, k.replace(/([A-Z])/g, ' $1').toLowerCase()), h('span', {}, typeof v === 'number' && /won|lost|net|best|wager|fee/i.test(k) && !/hands|games/i.test(k) ? money(v) : String(v))));
   }
   if (!rows.length) rows.push(h('p', {}, 'Play a few hands and your stats will show up here.'));
   rows.push(h('div', { class: 'btn-row' }, h('button', { class: 'btn danger', onclick: () => { state.stats = {}; save(); toast('Stats cleared'); } }, 'Reset stats')));

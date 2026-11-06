@@ -5,7 +5,7 @@ import { h, gameOpts, save, sheet, selectRow, toggleRow, toast, sfx, stat, statM
 const OPTS = {
   draw: 3,
   passes: 'unlimited', // 'unlimited' | 3 | 1
-  scoring: 'standard', // 'none' | 'standard' | 'vegas' | 'vegas-bankroll'
+  scoring: 'vegas-bankroll', // 'none' | 'standard' | 'vegas' | 'vegas-bankroll'
   leftHanded: false,
   tapToMove: true,
   autoPlay: false,
@@ -14,9 +14,16 @@ const OPTS = {
 
 const VEGAS_ANTE = 52;
 const VEGAS_PER_CARD = 5;
+// Playing for chips: the helpers stay available but each one costs something, so solitaire
+// can't turn into a free money machine for the shared bankroll.
+const FEE = { undo: 5, shuffle: 25, recycle: 10 };
+// Casino pass allowance: 1 pass on draw 1, 3 passes on draw 3. Recycles beyond that cost FEE.recycle.
+const casinoPasses = (draw) => (draw === 1 ? 1 : 3);
 
 export function mount(root, { topBar }) {
   const o = gameOpts('solitaire', OPTS);
+  // v12: every game plays for chips now, so switch existing players to the bankroll once.
+  if (!o.moneyV12) { o.moneyV12 = true; o.scoring = 'vegas-bankroll'; save(); }
   let g; // game state
   let history = [];
   let timerId = null;
@@ -45,12 +52,12 @@ export function mount(root, { topBar }) {
 
   // ---------- Game setup ----------
   function newGame() {
-    const vegasBank = o.scoring === 'vegas-bankroll';
-    if (vegasBank) {
+    let scoring = o.scoring;
+    if (scoring === 'vegas-bankroll') {
       if (!canAfford(VEGAS_ANTE)) {
-        toast(`You need ${money(VEGAS_ANTE)} to buy a Vegas deck. Refill from the main menu.`, 3000);
-        o.scoring = 'vegas';
-        save();
+        // Can't buy the deck: this one deal is practice only. The setting stays on chips.
+        toast(`You need ${money(VEGAS_ANTE)} to buy a deck, so this deal is practice. Refill from the main menu.`, 3500);
+        scoring = 'vegas';
       } else {
         addWallet(-VEGAS_ANTE);
         stat('solitaire', 'vegasWagered', VEGAS_ANTE);
@@ -70,8 +77,9 @@ export function mount(root, { topBar }) {
       draw: o.draw,
       passesAllowed: o.passes === 'unlimited' ? Infinity : Number(o.passes),
       pass: 1,
-      scoring: o.scoring,
-      score: o.scoring.startsWith('vegas') ? -VEGAS_ANTE : 0,
+      scoring,
+      score: scoring.startsWith('vegas') ? -VEGAS_ANTE : 0,
+      fees: 0,
       moves: 0,
       start: 0,
       elapsed: 0,
@@ -115,6 +123,19 @@ export function mount(root, { topBar }) {
     return isRed(t.c.s) !== isRed(card.s) && low(t.c.r) === low(card.r) + 1;
   }
 
+  const forChips = () => g.scoring === 'vegas-bankroll';
+  // Charge a helper fee in bankroll mode. Returns false (and says why) if you can't cover it.
+  function payFee(kind) {
+    if (!forChips()) return true;
+    const fee = FEE[kind];
+    if (!canAfford(fee)) { toast(`That costs ${money(fee)} and your bankroll is too low.`); return false; }
+    addWallet(-fee);
+    g.fees = (g.fees || 0) + fee;
+    stat('solitaire', 'feesPaid', fee);
+    return true;
+  }
+  const net = () => g.score - (g.fees || 0);
+
   function snapshot() {
     history.push(JSON.stringify({ ...g, passesAllowed: g.passesAllowed === Infinity ? 'inf' : g.passesAllowed }));
     if (history.length > 500) history.shift();
@@ -122,8 +143,10 @@ export function mount(root, { topBar }) {
 
   function undo() {
     if (!history.length) return;
-    if (g.scoring === 'vegas-bankroll') { toast('No undo when playing for bankroll, just like the casino.'); return; }
+    if (!payFee('undo')) return;
     const prev = JSON.parse(history.pop());
+    // Foundation winnings that the undo takes back come out of the bankroll; fees already paid stay paid.
+    if (forChips()) { const d = prev.score - g.score; if (d) addWallet(d); prev.fees = g.fees; }
     logAct('undo');
     prev.passesAllowed = prev.passesAllowed === 'inf' ? Infinity : prev.passesAllowed;
     const elapsed = g.elapsed;
@@ -193,9 +216,9 @@ export function mount(root, { topBar }) {
     const pool = g.stock.concat(g.waste).map((x) => x.c);
     g.tab.forEach((col) => col.forEach((x) => { if (!x.up) pool.push(x.c); }));
     if (pool.length < 2) { toast('No face-down cards left to shuffle.'); return; }
-    if (g.scoring === 'vegas-bankroll') { toast('Reshuffling is not allowed when playing for bankroll.'); return; }
-    logAct(`shuffle ${pool.length}`);
     snapshot();
+    if (!payFee('shuffle')) { history.pop(); return; }
+    logAct(`shuffle ${pool.length}`);
     startClock();
     const total = pool.length;
     const order = shuffle(pool);
@@ -243,8 +266,11 @@ export function mount(root, { topBar }) {
       sfx.card();
     } else if (g.waste.length) {
       if (g.pass >= g.passesAllowed) { toast(g.passesAllowed === 1 ? 'Only one pass through the deck in this mode.' : `No passes left (limit ${g.passesAllowed}).`); return; }
-      logAct(`recycle waste ${g.waste.length} -> stock`);
       snapshot();
+      const paid = forChips() && g.pass >= casinoPasses(g.draw);
+      if (paid && !payFee('recycle')) { history.pop(); return; }
+      if (paid) toast(`Extra pass through the deck: ${money(FEE.recycle)}`, 1400);
+      logAct(`recycle waste ${g.waste.length} -> stock`);
       g.stock = g.waste.reverse().map((x) => ({ c: x.c, up: false }));
       g.waste = [];
       g.pass++;
@@ -399,7 +425,7 @@ export function mount(root, { topBar }) {
     if (g.scoring === 'standard' && g.elapsed > 30) bonus = Math.round(700000 / g.elapsed);
     g.score += bonus;
     stat('solitaire', 'gamesWon');
-    statMax('solitaire', 'bestScore' + (g.scoring.startsWith('vegas') ? 'Vegas' : ''), g.score);
+    statMax('solitaire', 'bestScore' + (g.scoring.startsWith('vegas') ? 'Vegas' : ''), net());
     const best = (appState.stats.solitaire.fastestWinSeconds);
     if (!best || g.elapsed < best) appState.stats.solitaire.fastestWinSeconds = Math.round(g.elapsed);
     save();
@@ -409,7 +435,7 @@ export function mount(root, { topBar }) {
   }
 
   function celebrate(bonus) {
-    const msg = g.scoring.startsWith('vegas') ? `You won! ${money(g.score)}` : g.scoring === 'standard' ? `You won! ${g.score.toLocaleString()} pts${bonus ? ` (time bonus ${bonus.toLocaleString()})` : ''}` : 'You won!';
+    const msg = g.scoring.startsWith('vegas') ? `You won! ${net() >= 0 ? '+' : ''}${money(net())}` : g.scoring === 'standard' ? `You won! ${g.score.toLocaleString()} pts${bonus ? ` (time bonus ${bonus.toLocaleString()})` : ''}` : 'You won!';
     const b = h('div', { class: 'banner' }, msg);
     board.append(b);
     // Cascade the foundation cards for a bit of flair.
@@ -558,10 +584,11 @@ export function mount(root, { topBar }) {
     }
 
     updateInfo();
-    undoBtn.disabled = !history.length || g.scoring === 'vegas-bankroll';
+    undoBtn.disabled = !history.length;
+    undoBtn.replaceChildren('↶ Undo', forChips() ? h('span', { class: 'fee' }, money(FEE.undo)) : '');
+    shuffleBtn.replaceChildren('⇄ Shuffle', forChips() ? h('span', { class: 'fee' }, money(FEE.shuffle)) : '');
     autoBtn.style.display = canAutoFinish() ? '' : 'none';
     hintBtn.style.display = canAutoFinish() ? 'none' : '';
-    shuffleBtn.disabled = g.scoring === 'vegas-bankroll';
   }
 
   // Visibly deal cards from the stock to wherever they now sit on the table.
@@ -582,7 +609,7 @@ export function mount(root, { topBar }) {
 
   function updateInfo() {
     if (g.scoring === 'none') scoreEl.textContent = '';
-    else if (g.scoring.startsWith('vegas')) scoreEl.textContent = `Vegas ${money(g.score)}`;
+    else if (g.scoring.startsWith('vegas')) { const n = net(); scoreEl.textContent = `${forChips() ? 'This deal' : 'Vegas'} ${n >= 0 ? '+' : '−'}${money(Math.abs(n))}`; }
     else scoreEl.textContent = `Score ${g.score}`;
     movesEl.textContent = `Moves ${g.moves}`;
     passEl.textContent = g.passesAllowed === Infinity ? `Draw ${g.draw}` : `Draw ${g.draw} · Pass ${Math.min(g.pass, g.passesAllowed)}/${g.passesAllowed}`;
@@ -698,8 +725,8 @@ export function mount(root, { topBar }) {
       h('h3', {}, 'Deal'),
       selectRow('Cards per draw', o, 'draw', [[1, 'Draw 1'], [3, 'Draw 3']], needNew),
       selectRow('Passes through deck', o, 'passes', [['unlimited', 'Unlimited'], [3, '3 passes'], [1, '1 pass']], needNew),
-      selectRow('Scoring', o, 'scoring', [['none', 'None'], ['standard', 'Standard points'], ['vegas', 'Vegas (practice)'], ['vegas-bankroll', 'Vegas (uses bankroll)']], needNew),
-      h('p', { class: 'prose' }, h('small', {}, `Vegas: the deck costs ${money(VEGAS_ANTE)} and every card you put on a foundation pays ${money(VEGAS_PER_CARD)}. Casino rules allowed 1 pass on draw 1 and 3 passes on draw 3. "Uses bankroll" charges your real play-money bankroll and turns off undo.`)),
+      selectRow('Scoring', o, 'scoring', [['vegas-bankroll', 'Play for chips (bankroll)'], ['vegas', 'Vegas practice (no chips)'], ['standard', 'Standard points'], ['none', 'None']], needNew),
+      h('p', { class: 'prose' }, h('small', {}, `Vegas: the deck costs ${money(VEGAS_ANTE)} and every card you put on a foundation pays ${money(VEGAS_PER_CARD)}. Playing for chips uses your bankroll. Undo costs ${money(FEE.undo)}, Shuffle costs ${money(FEE.shuffle)}, and each pass through the deck beyond the casino limit (1 on draw 1, 3 on draw 3) costs ${money(FEE.recycle)}.`)),
       h('h3', {}, 'Play'),
       toggleRow('Left-handed layout', o, 'leftHanded', () => render(), 'Stock on the right, foundations on the left'),
       toggleRow('Tap to move', o, 'tapToMove', null, 'Tap a card to send it to the best spot'),
@@ -716,6 +743,7 @@ export function mount(root, { topBar }) {
       h('p', {}, 'Tap the stock to turn cards onto the waste pile. On Draw 3, three cards turn at once and only the top one can be played.'),
       h('p', {}, h('b', {}, 'Standard scoring: '), 'waste to tableau +5, any card to foundation +10, turning a tableau card +5, foundation back to tableau −15, recycling the waste −100 (draw 1) or −20 (draw 3). Winning after 30 seconds adds a time bonus.'),
       h('p', {}, h('b', {}, 'Vegas scoring: '), `you "buy" the deck for ${money(VEGAS_ANTE)} and earn ${money(VEGAS_PER_CARD)} per card on the foundations. Break even is 11 cards; a full win pays ${money(52 * 5)} for a ${money(208)} profit.`),
+      h('p', {}, h('b', {}, 'Playing for chips: '), `the deck and winnings go through your bankroll. Undo costs ${money(FEE.undo)}, Shuffle costs ${money(FEE.shuffle)}, and passes through the deck beyond the casino limit (1 on draw 1, 3 on draw 3) cost ${money(FEE.recycle)} each. Undoing a foundation move takes its ${money(VEGAS_PER_CARD)} back.`),
       h('p', {}, 'Drag cards, or tap a card to auto-move it. Wallet: ' + money(wallet()))));
   }
 
