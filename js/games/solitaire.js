@@ -348,13 +348,13 @@ export function mount(root, { topBar }) {
   function computeLayout() {
     const W = board.clientWidth;
     const H = board.clientHeight;
-    const pad = Math.max(6, Math.round(W * 0.015));
-    const gap = Math.max(4, Math.round(W * 0.012));
+    const pad = Math.max(4, Math.round(W * 0.01));
+    const gap = Math.max(3, Math.round(W * 0.008));
     let cw = Math.floor((W - 2 * pad - 6 * gap) / 7);
     // Limit by height so the top row + a 13-card run fits on wide screens.
     cw = Math.min(cw, Math.floor((H - 3 * pad) / (1.4 * 2 + 1.4 * 0.25 * 12)), 130);
     cw = Math.max(cw, 36);
-    const ch = Math.round(cw * 1.4);
+    const ch = Math.round(cw * (cw < 72 ? 1.45 : 1.4));
     const totalW = 7 * cw + 6 * gap;
     const left = Math.round((W - totalW) / 2);
     const colX = (i) => left + (o.leftHanded ? 6 - i : i) * (cw + gap);
@@ -432,8 +432,8 @@ export function mount(root, { topBar }) {
       const downs = col.filter((x) => !x.up).length;
       const ups = col.length - downs;
       // Roomy spacing like a real table; only squeeze a column when it would run off the screen.
-      let dOff = ch * 0.18;
-      let uOff = ch * 0.4;
+      let dOff = ch * (layout.cw < 72 ? 0.11 : 0.16);
+      let uOff = ch * (layout.cw < 72 ? 0.3 : 0.36);
       const need = downs * dOff + Math.max(0, ups - 1) * uOff;
       if (need > avail && ups > 1) {
         uOff = Math.max(ch * 0.22, (avail - downs * dOff) / (ups - 1));

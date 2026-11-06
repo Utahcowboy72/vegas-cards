@@ -405,10 +405,12 @@ table.paytable td:first-child, table.paytable th:first-child { text-align: left;
 .pk-log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; }
 .pk-log .hd { color: var(--gold); margin-top: 8px; }
 
-/* Big-index faces for small screens: large rank + suit across the top, one big suit below. */
+/* Big-index faces for small screens: bold rank left and suit right across the top, one big suit below. */
 .card .big-suit { display: none; }
+.mobile-faces .card.face { font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; }
 .mobile-faces .card.face .center, .mobile-faces .card.face .corner.br { display: none; }
-.mobile-faces .card.face .corner.tl { flex-direction: row; align-items: center; gap: 1px; top: 3%; left: 6%; line-height: 1; }
-.mobile-faces .card.face .cr { font-size: calc(var(--cw) * .42); letter-spacing: -2px; }
+.mobile-faces .card.face .corner.tl { flex-direction: row; justify-content: space-between; align-items: center; top: 2%; left: 7%; right: 6%; line-height: 1; }
+.mobile-faces .card.face .cr { font-size: calc(var(--cw) * .40); letter-spacing: -1px; font-weight: 700; }
 .mobile-faces .card.face .cs { font-size: calc(var(--cw) * .36); }
-.mobile-faces .card.face .big-suit { display: block; position: absolute; left: 50%; top: 62%; transform: translate(-50%, -50%); font-size: calc(var(--cw) * .66); line-height: 1; font-family: system-ui, sans-serif; }
+.mobile-faces .card.face .big-suit { display: block; position: absolute; left: 50%; top: 64%; transform: translate(-50%, -50%); font-size: calc(var(--cw) * .72); line-height: 1; font-family: system-ui, sans-serif; }
+.mobile-faces .card { border-radius: calc(var(--cw) * .07); }
